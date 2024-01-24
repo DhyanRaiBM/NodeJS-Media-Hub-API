@@ -1,7 +1,7 @@
 //-Two production level Approach :
 
 //-Approach 1 -Using Promise :
-const asyncHandler = (requestHandler) => {
+export const asyncHandler = (requestHandler) => {
     return async (req, res, next) => {
         Promise.resolve(requestHandler(req, res, next)).catch(err => next(err));//if there is an error pass the control to the next middleware that accepts errors
     }
