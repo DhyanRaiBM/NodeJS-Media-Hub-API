@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
-import { response } from "express";
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -36,7 +36,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
     const { userName, email, fullName, password } = req.body;
 
     if ([fullName, email, userName, password].some((field) => field === "")) {
-        throw new ApiError(400, "All fields must are Required");
+        throw new ApiError(400, "All fields are Required");
     }
 
     const existedUser = await User.findOne({
@@ -435,6 +435,64 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     }
 })
 
+//~Get watch history:
+const getWatchHistory = asyncHandler(async (req, res) => {
+    const user = User.aggregate([
+        {
+            $match: {
+                //-converting into objectId using mongoose,because aggregate comes directly from mongodb
+                //-you dont have to covert it using other functions because they come from mongoose
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",//-Here we get an array of video documents in watchHistory
+                pipeline: [//-This is the pipeline for each returned video document in watchHistory
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",//-Here we get an array of a single user document in owner
+                            pipeline: [//-This is the pipeline for the user document in owner
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner",//-Returns the first elemnt from the owner field
+                            }
+                        }
+                    }
+                ]
+            }
+
+        }
+    ])
+
+    if (!user) {
+        throw new ApiError(400, "Failed to fetch watch history")
+    }
+
+    res
+        .status(200)
+        .json(
+            new ApiResponse(200, "watch history fetched successfully", user[0])
+        )
+})
+
 
 
 
@@ -448,5 +506,6 @@ export {
     updateUserAvatar,
     updateAccountDetails,
     getCurrentUser,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 } 
