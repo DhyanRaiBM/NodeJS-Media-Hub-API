@@ -186,20 +186,16 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     if (!videoId)
         throw new ApiError(400, "videoId required");
 
-    const video = await Video.findById(videoId);
-
-    if (!video)
-        throw new ApiError(400, "video not found");
-
-    const updatedVideo = await Video.findByIdAndUpdate(
-        videoId,
+    const updatedVideo = await Video.findByIdAndUpdate(videoId,
         {
-            isPublished: !video.isPublished,
+            $set: {
+                isPublished: {
+                    $not: "$isPublished"
+                }
+
+            }
         },
-        {
-            new: "true"
-        }
-    )
+        { new: true })
 
     if (!updatedVideo)
         throw new ApiError(400, "Something went wrong while updating video status");
