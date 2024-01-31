@@ -1,17 +1,80 @@
 
-import mongoose, { isValidObjectId } from "mongoose"
+import mongoose from "mongoose"
 import { Video } from "../models/video.model.js"
-import { User } from "../models/user.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js"
 
-
+//~Get Videos via Query :
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
-    //TODO: get all videos based on query, sort, pagination
-})
+    const { page = 1, limit = 10, query } = req.query;
+
+    // Convert page and limit to integers
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+
+    // Match stage to filter videos based on the query
+    const matchStage = {};
+    if (query) {
+        matchStage.$match = { title: { $regex: new RegExp(query, 'i') } };
+    }
+
+    // Aggregation pipeline stages
+    const aggregationPipeline = [
+        matchStage, // Match stage to filter based on query
+        { $sort: { createdAt: -1 } }, // Sort by createdAt in descending order
+        { $limit: limitNumber }, // Limit documents for pagination
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            fullName: 1,
+                            userName: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                owner: { $arrayElemAt: ["$owner", 0] } // Extract owner from array
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                title: 1,
+                description: 1,
+                createdAt: 1,
+                owner: 1,
+                description: 1,
+                videoFile: 1,
+                thumbnail: 1,
+            }
+        }
+    ];
+
+    // Execute aggregation pipeline
+    const videos = await Video.aggregate(aggregationPipeline);
+
+    if (!videos) {
+        throw new ApiError("Failed to fetch videos ")
+    }
+
+    res
+        .status(200)
+        .json(
+            new ApiResponse(200, "Videos fetched successfully", videos)
+        )
+});
+
 
 //~Publish a video:
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -23,8 +86,9 @@ const publishAVideo = asyncHandler(async (req, res) => {
     }
     //retreive the video and thumbnail
 
-    const videolocalpath = req.files?.videoFile[0]?.path;
-    const thumbnaillocalpath = req.files?.thumbnail[0]?.path;
+    const videolocalpath = req.files && req.files.videoFile && req.files.videoFile[0] && req.files.videoFile[0].path;
+    const thumbnaillocalpath = req.files && req.files.thumbnail && req.files.thumbnail[0] && req.files.thumbnail[0].path;
+
 
     // console.log(videolocalpath, thumbnaillocalpath);
 
@@ -37,8 +101,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
     //cloud 
     const video = await uploadOnCloudinary(videolocalpath);
     const thumbnail = await uploadOnCloudinary(thumbnaillocalpath);
-
-    console.log(video, thumbnail);
 
     if (!video?.url) {
         throw new ApiError(500, "Error while uplaoding the video")
