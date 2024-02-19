@@ -18,6 +18,6 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
         req.user = user;
         next();//-Pass the control to the next middleware
     } catch (error) {
-        throw new ApiError(401, "Unauthorized")
+        throw new ApiError(401, "Invalid access token")
     }
 })
