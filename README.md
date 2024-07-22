@@ -58,9 +58,8 @@ For detailed API testing and interaction, use the Postman collection provided:
 MediaHub API is not currently deployed. To use this API, you can clone the repository and add your environment variables with your own credentials. 
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/DhyanRaiBM/NodeJS-Media-Hub-API.git
 cd mediahub-api
 # Add your environment variables in a .env file
-# Install dependencies and start the server
 npm install
 npm start
