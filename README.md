@@ -55,4 +55,12 @@ For detailed API testing and interaction, use the Postman collection provided:
 [Postman Collection](https://www.postman.com/martian-crescent-666772/workspace/mediahub-api/collection/32525625-edb76880-074d-4fbc-9cf6-4fdf173357de?action=share&creator=32525625)
 
 **Note:**
-MediaHub API is designed to provide an extensive set of features for video sharing platforms, making it ideal for developers looking to create a platform similar to YouTube.
+MediaHub API is not currently deployed. To use this API, you can clone the repository and add your environment variables with your own credentials. 
+
+```bash
+git clone <repository-url>
+cd mediahub-api
+# Add your environment variables in a .env file
+# Install dependencies and start the server
+npm install
+npm start
